@@ -1,17 +1,26 @@
-module Dom.Attributes exposing (Attribute, createAttribute, pullAttributeData)
+module Dom.Attributes exposing (Attribute, charset, createAttribute, pullAttributeData)
 
-import Json.Encode exposing (Value)
+import Json.Encode as Encode exposing (Value)
 
 
-type Attribute
+type Attribute msg
     = Attribute Value
 
 
-pullAttributeData : Attribute -> Value
+pullAttributeData : Attribute msg -> Value
 pullAttributeData (Attribute json) =
     json
 
 
-createAttribute : Value -> Attribute
+createAttribute : Value -> Attribute msg
 createAttribute json =
     Attribute json
+
+
+charset : String -> Attribute msg
+charset value =
+    Attribute <|
+        Encode.object
+            [ ( "key", Encode.string "charset" )
+            , ( "value", Encode.string value )
+            ]

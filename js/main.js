@@ -13,20 +13,36 @@ const render = ({ attributes, children, tag, textValue }) => {
     }
 
     const attr = attributes.map(({ key, value }) => {
-        return ` x-${key.toLowerCase()}=${JSON.stringify(value)}`;
+        const lowerKey = key.toLowerCase();
+        if (/^on/.test(lowerKey)) {
+            return ` x-${lowerKey}=${JSON.stringify(value)}`;
+        }
+
+        return ` ${lowerKey}=${JSON.stringify(value)}`;
     }).join('');
 
     return `<${tag} ${attr}>${children.map(render).join('')}</${tag}>`;
 };
 
-app.ports.render.subscribe(doc => {
-    console.log(`render`, root, doc);
+const renderToString = nodes => nodes.map(render).join('');
+
+const clientRender = (root, doc) => {
+    const head = document.querySelector("head");
+    head.innerHTML = renderToString(doc.head);
+    const title = document.createElement("title");
+    title.innerText = doc.title;
+    head.appendChild(title);
 
     document.title = doc.title;
 
-    root.innerHTML = doc.body.map(render).join('');
+    root.innerHTML = renderToString(doc.body);
+};
+
+app.ports.render.subscribe(doc => {
+    console.log(`render`, root, doc);
+    clientRender(root, doc);
 });
 
-app.ports.gateway.send({
-    cmd: "INCREMENT",
-});
+//app.ports.gateway.send({
+//    cmd: "INCREMENT",
+//});

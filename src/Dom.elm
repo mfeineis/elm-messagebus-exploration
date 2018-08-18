@@ -1,38 +1,27 @@
 module Dom
     exposing
-        ( CmdDriver
-        , Document
-        , DomNode
-        , Renderable
+        ( Document
+        , Html
         , button
         , div
-        , pack
+        , meta
+        , pullNodeData
         , text
         )
 
 import Dom.Attributes exposing (Attribute, pullAttributeData)
-import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode exposing (Value)
 
 
-type alias CmdDriver msg =
-    { decode : Decoder msg
-    , encode : msg -> Value
-    }
-
-
-type alias Document =
-    { body : List DomNode
+type alias Document msg =
+    { body : List (Html msg)
+    , head : List (Html msg)
     , title : String
     }
 
 
-type alias Renderable =
-    Value
-
-
-type DomNode
-    = DomNode Value
+type Html msg
+    = Html Value
 
 
 type alias NodeData =
@@ -53,9 +42,9 @@ encode { attributes, children, tag, textValue } =
         ]
 
 
-button : List Attribute -> List DomNode -> DomNode
+button : List (Attribute msg) -> List (Html msg) -> Html msg
 button attrs children =
-    DomNode <|
+    Html <|
         encode
             { attributes = List.map pullAttributeData attrs
             , children = List.map pullNodeData children
@@ -64,9 +53,9 @@ button attrs children =
             }
 
 
-div : List Attribute -> List DomNode -> DomNode
+div : List (Attribute msg) -> List (Html msg) -> Html msg
 div attrs children =
-    DomNode <|
+    Html <|
         encode
             { attributes = List.map pullAttributeData attrs
             , children = List.map pullNodeData children
@@ -75,9 +64,20 @@ div attrs children =
             }
 
 
-text : String -> DomNode
+meta : List (Attribute msg) -> List (Html msg) -> Html msg
+meta attrs children =
+    Html <|
+        encode
+            { attributes = List.map pullAttributeData attrs
+            , children = List.map pullNodeData children
+            , tag = "meta"
+            , textValue = ""
+            }
+
+
+text : String -> Html msg
 text t =
-    DomNode <|
+    Html <|
         encode
             { attributes = []
             , children = []
@@ -86,13 +86,5 @@ text t =
             }
 
 
-pullNodeData (DomNode json) =
+pullNodeData (Html json) =
     json
-
-
-pack : Document -> Renderable
-pack { body, title } =
-    Encode.object
-        [ ( "title", Encode.string title )
-        , ( "body", Encode.list pullNodeData body )
-        ]

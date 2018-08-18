@@ -1,7 +1,9 @@
 port module Main exposing (main)
 
-import Dom exposing (CmdDriver, DomNode, Renderable)
-import Dom.Events
+import Dom as Html exposing (Html)
+import Dom.Attributes as Attr
+import Dom.Events exposing (CmdDriver)
+import Dom.Static exposing (Renderable)
 import Json.Decode as Decode exposing (Decoder, Value)
 import Json.Encode as Encode
 
@@ -65,9 +67,13 @@ subscriptions { decode } _ =
     gateway interpret
 
 
-init : () -> ( Model, Cmd msg )
+init : () -> ( Model, Cmd Msg )
 init _ =
-    ( { counter = 0 }, Cmd.none )
+    let
+        model =
+            { counter = 0 }
+    in
+    ( model, mightRender model )
 
 
 type alias Model =
@@ -91,23 +97,26 @@ update msg ({ counter } as model) =
             ( updated, mightRender updated )
 
         Unknown ctx ->
-            ( model, Cmd.none )
+            ( model, mightRender model )
 
 
 mightRender : Model -> Cmd Msg
 mightRender model =
-    render (Dom.pack (view model))
+    render (Dom.Static.render (view model))
 
 
-view : Model -> Dom.Document
+view : Model -> Html.Document Msg
 view { counter } =
     { title = "Custom Title"
+    , head =
+        [ Html.meta [ Attr.charset "utf-8" ] []
+        ]
     , body =
-        [ Dom.div []
-            [ Dom.button
+        [ Html.div []
+            [ Html.button
                 [ Dom.Events.onClick driver Increment ]
-                [ Dom.text "+" ]
-            , Dom.text (String.fromInt counter)
+                [ Html.text "+" ]
+            , Html.text (String.fromInt counter)
             ]
         ]
     }
