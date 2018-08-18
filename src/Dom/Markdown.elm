@@ -13,8 +13,9 @@ toHtml markdown =
         Ok nodes ->
             render nodes
 
-        Err _ ->
-            Html.div [] [ Html.text "Something went wrong!" ]
+        Err reason ->
+            Debug.log ("Parser error: " ++ Debug.toString reason) <|
+                Html.div [] [ Html.text "Something went wrong!" ]
 
 
 type Stmt
@@ -41,11 +42,11 @@ markdownParser =
         helper revStmts =
             Parser.oneOf
                 [ Parser.succeed (\stmt -> Loop (stmt :: revStmts))
-                    |= emptyLine
-                    |. Parser.symbol "\n"
-                , Parser.succeed (\stmt -> Loop (stmt :: revStmts))
                     |= heading
                     |. spaces
+                    |. Parser.symbol "\n"
+                , Parser.succeed (\stmt -> Loop (stmt :: revStmts))
+                    |= emptyLine
                     |. Parser.symbol "\n"
                 , Parser.succeed ()
                     |> Parser.map (\_ -> Done (List.reverse revStmts))

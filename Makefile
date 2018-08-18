@@ -1,5 +1,5 @@
 all:
-	./private/elm make ./src/Main.elm --output ./dist/app.js --optimize
+	./private/elm make ./src/Main.elm --output ./dist/app.js
 
 build.log: ./src/*
 	make all | tee ./build.log
