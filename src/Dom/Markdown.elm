@@ -1,4 +1,4 @@
-module Dom.Markdown exposing (toHtml)
+module Dom.Markdown exposing (toHtml, toHtmlString)
 
 import Char
 import Dom as Html exposing (Html)
@@ -16,6 +16,16 @@ toHtml markdown =
         Err reason ->
             Debug.log ("Parser error: " ++ Debug.toString reason) <|
                 Html.div [] [ Html.text "Something went wrong!" ]
+
+
+toHtmlString : String -> String
+toHtmlString markdown =
+    case Parser.run markdownParser markdown of
+        Ok nodes ->
+            ""
+
+        Err reason ->
+            Debug.toString reason
 
 
 type Stmt

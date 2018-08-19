@@ -1,10 +1,9 @@
 port module Main exposing (main)
 
---import Dom.Markdown as Markdown
-
 import Dom as Html exposing (Document, Html)
 import Dom.Attributes as Attr
 import Dom.Events exposing (CmdDriver)
+import Dom.Markdown as Markdown
 import Dom.Static exposing (Renderable)
 import Json.Decode as Decode exposing (Decoder, Value)
 import Json.Encode as Encode
