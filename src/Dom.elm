@@ -4,24 +4,23 @@ module Dom
         , Html
         , button
         , div
-        , meta
-        , pullNodeData
+        , node
         , text
         )
 
-import Dom.Attributes exposing (Attribute, pullAttributeData)
+import Dom.Internals.Attributes exposing (Attribute, pullAttributeData)
+import Dom.Internals.Html exposing (createNode, pullNodeData)
 import Json.Encode as Encode exposing (Value)
+
+
+type alias Html msg =
+    Dom.Internals.Html.Html msg
 
 
 type alias Document msg =
     { body : List (Html msg)
-    , head : List (Html msg)
     , title : String
     }
-
-
-type Html msg
-    = Html Value
 
 
 type alias NodeData =
@@ -30,6 +29,44 @@ type alias NodeData =
     , tag : String
     , textValue : String
     }
+
+
+
+-- Tags
+
+
+button : List (Attribute msg) -> List (Html msg) -> Html msg
+button =
+    node "button"
+
+
+div : List (Attribute msg) -> List (Html msg) -> Html msg
+div =
+    node "div"
+
+
+li : List (Attribute msg) -> List (Html msg) -> Html msg
+li =
+    node "li"
+
+
+ol : List (Attribute msg) -> List (Html msg) -> Html msg
+ol =
+    node "ol"
+
+
+p : List (Attribute msg) -> List (Html msg) -> Html msg
+p =
+    node "p"
+
+
+ul : List (Attribute msg) -> List (Html msg) -> Html msg
+ul =
+    node "ul"
+
+
+
+-- Helpers
 
 
 encode : NodeData -> Value
@@ -42,49 +79,23 @@ encode { attributes, children, tag, textValue } =
         ]
 
 
-button : List (Attribute msg) -> List (Html msg) -> Html msg
-button attrs children =
-    Html <|
+node : String -> List (Attribute msg) -> List (Html msg) -> Html msg
+node tag attrs children =
+    createNode <|
         encode
             { attributes = List.map pullAttributeData attrs
             , children = List.map pullNodeData children
-            , tag = "button"
-            , textValue = ""
-            }
-
-
-div : List (Attribute msg) -> List (Html msg) -> Html msg
-div attrs children =
-    Html <|
-        encode
-            { attributes = List.map pullAttributeData attrs
-            , children = List.map pullNodeData children
-            , tag = "div"
-            , textValue = ""
-            }
-
-
-meta : List (Attribute msg) -> List (Html msg) -> Html msg
-meta attrs children =
-    Html <|
-        encode
-            { attributes = List.map pullAttributeData attrs
-            , children = List.map pullNodeData children
-            , tag = "meta"
+            , tag = tag
             , textValue = ""
             }
 
 
 text : String -> Html msg
 text t =
-    Html <|
+    createNode <|
         encode
             { attributes = []
             , children = []
             , tag = ""
             , textValue = t
             }
-
-
-pullNodeData (Html json) =
-    json

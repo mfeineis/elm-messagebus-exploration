@@ -1,26 +1,18 @@
-module Dom.Attributes exposing (Attribute, charset, createAttribute, pullAttributeData)
+module Dom.Attributes exposing (Attribute, attribute)
 
-import Json.Encode as Encode exposing (Value)
-
-
-type Attribute msg
-    = Attribute Value
+import Dom.Internals.Attributes as Attr
+import Json.Encode as Encode
 
 
-pullAttributeData : Attribute msg -> Value
-pullAttributeData (Attribute json) =
-    json
+type alias Attribute msg =
+    Attr.Attribute msg
 
 
-createAttribute : Value -> Attribute msg
-createAttribute json =
-    Attribute json
-
-
-charset : String -> Attribute msg
-charset value =
-    Attribute <|
+attribute : String -> String -> Attribute msg
+attribute key value =
+    Attr.createAttribute <|
         Encode.object
-            [ ( "key", Encode.string "charset" )
+            [ ( "key", Encode.string key )
             , ( "value", Encode.string value )
             ]
+

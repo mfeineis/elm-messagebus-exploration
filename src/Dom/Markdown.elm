@@ -2,7 +2,7 @@ module Dom.Markdown exposing (toHtml)
 
 import Char
 import Dom as Html exposing (Html)
-import Parser exposing ((|.), (|=), Parser, Step(..), Trailing(..), spaces)
+import Parser exposing ((|.), (|=), Parser, Step(..), Trailing(..))
 import Set
 import Url exposing (Url)
 
@@ -32,8 +32,14 @@ type Content
 
 
 render : List Stmt -> Html msg
-render _ =
-    Html.div [] [ Html.text "<<Insert Some Markdown>>" ]
+render stmts =
+    Debug.log ("stmts: " ++ Debug.toString stmts) <|
+        Html.div [] [ Html.text "!!Insert Some Markdown!!" ]
+
+
+spaces : Parser ()
+spaces =
+    Parser.chompWhile (\c -> c == ' ')
 
 
 markdownParser : Parser (List Stmt)
@@ -44,10 +50,10 @@ markdownParser =
                 [ Parser.succeed (\stmt -> Loop (stmt :: revStmts))
                     |= heading
                     |. spaces
-                    |. Parser.symbol "\n"
-                , Parser.succeed (\stmt -> Loop (stmt :: revStmts))
-                    |= emptyLine
-                    |. Parser.symbol "\n"
+                    --|. Parser.token "\n"
+                --, Parser.succeed (\stmt -> Loop (stmt :: revStmts))
+                --    |= emptyLine
+                --    --|. Parser.token "\n"
                 , Parser.succeed ()
                     |> Parser.map (\_ -> Done (List.reverse revStmts))
                 ]
@@ -59,7 +65,8 @@ emptyLine : Parser Stmt
 emptyLine =
     Parser.succeed EmptyLine
         |= Parser.getOffset
-        |. Parser.getChompedString (Parser.chompWhile (\c -> c /= '\n'))
+        |. Parser.getChompedString
+             (Parser.chompWhile (\c -> (c == ' ' || c == '\t') && c /= '\n'))
         |= Parser.getOffset
 
 

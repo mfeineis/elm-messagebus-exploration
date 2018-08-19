@@ -1,9 +1,10 @@
 port module Main exposing (main)
 
-import Dom as Html exposing (Html)
+--import Dom.Markdown as Markdown
+
+import Dom as Html exposing (Document, Html)
 import Dom.Attributes as Attr
 import Dom.Events exposing (CmdDriver)
-import Dom.Markdown as Markdown
 import Dom.Static exposing (Renderable)
 import Json.Decode as Decode exposing (Decoder, Value)
 import Json.Encode as Encode
@@ -24,14 +25,22 @@ driver =
 
         decodeHelper cmd =
             case cmd of
+                "DECREMENT" ->
+                    Decode.succeed Decrement
+
                 "INCREMENT" ->
                     Decode.succeed Increment
 
                 _ ->
                     Decode.succeed (Unknown cmd)
 
-        encode cmd =
-            case cmd of
+        encode msg =
+            case msg of
+                Decrement ->
+                    Encode.object
+                        [ ( "cmd", Encode.string "DECREMENT" )
+                        ]
+
                 Increment ->
                     Encode.object
                         [ ( "cmd", Encode.string "INCREMENT" )
@@ -47,10 +56,31 @@ driver =
 
 main : Program () Model Msg
 main =
+    let
+        mightRender : Model -> Cmd Msg
+        mightRender model =
+            render <|
+                Dom.Static.render
+                    [ Html.node "meta" [ Attr.attribute "charset" "utf-8" ] []
+                    ]
+                    (view model)
+    in
     Platform.worker
-        { init = init
+        { init =
+            \flags ->
+                let
+                    ( m, cmds ) =
+                        init flags
+                in
+                ( m, Cmd.batch [ cmds, mightRender m ] )
         , subscriptions = subscriptions driver
-        , update = update
+        , update =
+            \msg m1 ->
+                let
+                    ( m2, cmds ) =
+                        update msg m1
+                in
+                ( m2, Cmd.batch [ cmds, mightRender m2 ] )
         }
 
 
@@ -65,7 +95,9 @@ subscriptions { decode } _ =
                 Err _ ->
                     Unknown "Decoding went very, very wrong!"
     in
-    gateway interpret
+    Sub.batch
+        [ gateway interpret
+        ]
 
 
 init : () -> ( Model, Cmd Msg )
@@ -74,7 +106,7 @@ init _ =
         model =
             { counter = 0 }
     in
-    ( model, mightRender model )
+    ( model, Cmd.none )
 
 
 type alias Model =
@@ -83,49 +115,49 @@ type alias Model =
 
 
 type Msg
-    = Increment
+    = Decrement
+    | Increment
     | Unknown String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg ({ counter } as model) =
     case msg of
+        Decrement ->
+            let
+                updated =
+                    { model | counter = counter - 1 }
+            in
+            ( updated, Cmd.none )
+
         Increment ->
             let
                 updated =
                     { model | counter = counter + 1 }
             in
-            ( updated, mightRender updated )
+            ( updated, Cmd.none )
 
         Unknown ctx ->
-            ( model, mightRender model )
+            ( model, Cmd.none )
 
 
-mightRender : Model -> Cmd Msg
-mightRender model =
-    render (Dom.Static.render (view model))
-
-
-view : Model -> Html.Document Msg
+view : Model -> Document Msg
 view { counter } =
     { title = "Custom Title"
-    , head =
-        [ Html.meta [ Attr.charset "utf-8" ] []
-        ]
     , body =
         [ Html.div []
             [ Html.button
+                [ Dom.Events.onClick driver Decrement ]
+                [ Html.text "-" ]
+            , Html.text (String.fromInt counter)
+            , Html.button
                 [ Dom.Events.onClick driver Increment ]
                 [ Html.text "+" ]
-            , Html.text (String.fromInt counter)
             ]
-        , Html.div []
-            [ Markdown.toHtml
-                """
 
-# Hello World!
-
-                """
-            ]
+        --, Html.div []
+        --    [ Markdown.toHtml
+        --        "# Hello World!"
+        --    ]
         ]
     }
