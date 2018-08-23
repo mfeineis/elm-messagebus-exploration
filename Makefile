@@ -16,7 +16,7 @@ markdown.spec.dumptests:
 markdown.spec.generate:
 	node ./tests/generate-tests-from-spec
 
-test-watch:
+watch-tests:
 	npx elm-test --compiler=./private/elm --watch tests/Test/**/**/*.elm
 
 watch:

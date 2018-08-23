@@ -154,9 +154,9 @@ view { counter } =
                 [ Html.text "+" ]
             ]
 
-        --, Html.div []
-        --    [ Markdown.toHtml
-        --        "# Hello World!"
-        --    ]
+        , Html.div []
+            [ Markdown.toHtml
+                "## Hello World!"
+            ]
         ]
     }
