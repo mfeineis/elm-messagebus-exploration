@@ -38,8 +38,7 @@ const generateSection = (examples, section) => {
     )(section);
     const modulePath = `Test.Generated.${moduleName}`;
 
-    const content = `
-module ${modulePath} exposing (suite)
+    const content = `module ${modulePath} exposing (suite)
 
 -- | These test cases are generated via "make markdown.spec.generate"
 
@@ -51,10 +50,8 @@ import Dom.Markdown as Markdown
 suite : Test
 suite =
     describe "${section}"
-        [ ${join("        ,", map(exampleToTest, examples))}
-        ]
-
-    `;
+        [${join("        ,", map(exampleToTest, examples))}
+        ]`;
 
     return {
         moduleName,
