@@ -22,7 +22,7 @@ suite =
 
         ,
 
-        describe "example 33"
+        Test.only <| describe "example 33"
             [ test """####### foo\n""" <|
                 \_ ->
                     """####### foo\n"""
@@ -32,7 +32,7 @@ suite =
 
         ,
 
-        describe "example 34"
+        Test.only <| describe "example 34"
             [ test """#5 bolt\n\n#hashtag\n""" <|
                 \_ ->
                     """#5 bolt\n\n#hashtag\n"""
@@ -42,7 +42,7 @@ suite =
 
         ,
 
-        describe "example 35"
+        Test.only <| describe "example 35"
             [ test """\\## foo\n""" <|
                 \_ ->
                     """\\## foo\n"""

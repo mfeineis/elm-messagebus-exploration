@@ -23,8 +23,17 @@ toHtmlString markdown =
     let
         walk stmt =
             case stmt of
-                Heading level txt ->
-                    "<h" ++ String.fromInt level ++ ">" ++ txt ++ "</h" ++ String.fromInt level ++ ">\n"
+                EmptyLine ->
+                    ""
+
+                Heading level (Invalid delim) txt ->
+                    "<p>" ++ String.repeat level "#" ++ delim ++ txt ++ "</p>\n"
+
+                Heading level Valid txt ->
+                    if level > 6 then
+                        "<p>" ++ String.repeat level "#" ++ txt ++ "</p>\n"
+                    else
+                        "<h" ++ String.fromInt level ++ ">" ++ txt ++ "</h" ++ String.fromInt level ++ ">\n"
 
                 StmtList stmts ->
                     List.foldr (++) "" (List.map walk stmts)
@@ -48,9 +57,12 @@ render stmt =
 
 
 type Stmt
-    = Heading Int String
-      --| EmptyLine Int Int
+    = EmptyLine
+    | Heading Int HeadingState String
     | StmtList (List Stmt)
+
+
+type HeadingState = Invalid String | Valid
 
 
 markdownParser : Parser Stmt
@@ -65,17 +77,16 @@ expression : Parser Stmt
 expression =
     Parser.oneOf
         [ heading
+        , emptyLine
         ]
 
 
 
---emptyLine : Parser Stmt
---emptyLine =
---    Parser.succeed EmptyLine
---        |= Parser.getOffset
---        |. Parser.getChompedString
---             (Parser.chompWhile (\c -> (c == ' ' || c == '\t') && c /= '\n'))
---        |= Parser.getOffset
+emptyLine : Parser Stmt
+emptyLine =
+    Parser.succeed EmptyLine
+        |. Parser.chompWhile (\c -> (c == ' ' || c == '\t' || c == '\r') && c /= '\n')
+        |. newline
 
 
 heading : Parser Stmt
@@ -95,9 +106,14 @@ heading =
             , Parser.succeed 1
                 |. Parser.symbol "#"
             ]
-        |. spaces
+        |= Parser.oneOf
+            [ Parser.succeed Invalid
+                |= Parser.getChompedString (Parser.chompIf (\c -> c /= ' '))
+            , Parser.succeed Valid
+                |. Parser.chompIf (\c -> c == ' ')
+            ]
         |= Parser.variable
-            { start = Char.isAlphaNum
+            { start = \c -> c /= '\n'
             , inner = \c -> c /= '\n'
             , reserved = Set.empty
             }
