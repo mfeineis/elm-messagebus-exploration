@@ -16,8 +16,10 @@ markdown.spec.dumptests:
 markdown.spec.generate:
 	node ./tests/generate-tests-from-spec
 
+#npx elm-test --compiler=./private/elm --watch tests/Test/**/**/*.elm
+#npx elm-test --compiler=./private/elm --watch tests/Test/**/*.elm
 watch-tests:
-	npx elm-test --compiler=./private/elm --watch tests/Test/**/**/*.elm
+	npx elm-test --compiler=./private/elm --watch tests/Test/*.elm
 
 watch:
 	(while true; do make -q build.log || make build.log ; sleep 1; done) | grep -v 'make\[1\]'

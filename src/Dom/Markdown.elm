@@ -21,34 +21,28 @@ toHtml markdown =
 toHtmlString : String -> String
 toHtmlString markdown =
     let
-        walk stmt =
-            case stmt of
-                EmptyLine ->
-                    ""
-
-                Heading level (Invalid delim) txt ->
-                    "<p>" ++ String.repeat level "#" ++ delim ++ txt ++ "</p>\n"
-
-                Heading level Valid txt ->
+        walk block =
+            case block of
+                Heading level txt ->
                     if level > 6 then
-                        "<p>" ++ String.repeat level "#" ++ txt ++ "</p>\n"
+                        "<p>" ++ String.repeat level "#" ++ txt ++ "</p>"
                     else
-                        "<h" ++ String.fromInt level ++ ">" ++ txt ++ "</h" ++ String.fromInt level ++ ">\n"
+                        "<h" ++ String.fromInt level ++ ">" ++ txt ++ "</h" ++ String.fromInt level ++ ">"
 
-                StmtList stmts ->
-                    List.foldr (++) "" (List.map walk stmts)
+                Document blocks ->
+                    List.foldr (++) "\n" (List.map walk blocks)
     in
     case Parser.run markdownParser markdown of
-        Ok stmt ->
-            walk stmt
+        Ok block ->
+            walk block
 
         Err reason ->
             Debug.toString reason
 
 
-render : Stmt -> Html msg
-render stmt =
-    Debug.log ("stmt: " ++ Debug.toString stmt) <|
+render : Block -> Html msg
+render block =
+    Debug.log ("block: " ++ Debug.toString block) <|
         Html.div [] [ Html.text "!!Insert Some Markdown!!" ]
 
 
@@ -56,40 +50,26 @@ render stmt =
 -- Actual parser
 
 
-type Stmt
-    = EmptyLine
-    | Heading Int HeadingState String
-    | StmtList (List Stmt)
+type Block
+    = Document (List Block)
+    | Heading Int String
 
 
-type HeadingState = Invalid String | Valid
-
-
-markdownParser : Parser Stmt
+markdownParser : Parser Block
 markdownParser =
     Parser.succeed identity
-        |. spaces
         |= nonEmptyItemList expression
-        |> Parser.map StmtList
+        |> Parser.map Document
 
 
-expression : Parser Stmt
+expression : Parser Block
 expression =
     Parser.oneOf
         [ heading
-        , emptyLine
         ]
 
 
-
-emptyLine : Parser Stmt
-emptyLine =
-    Parser.succeed EmptyLine
-        |. Parser.chompWhile (\c -> (c == ' ' || c == '\t' || c == '\r') && c /= '\n')
-        |. newline
-
-
-heading : Parser Stmt
+heading : Parser Block
 heading =
     Parser.succeed Heading
         |= Parser.oneOf
@@ -106,22 +86,31 @@ heading =
             , Parser.succeed 1
                 |. Parser.symbol "#"
             ]
-        |= Parser.oneOf
-            [ Parser.succeed Invalid
-                |= Parser.getChompedString (Parser.chompIf (\c -> c /= ' '))
-            , Parser.succeed Valid
-                |. Parser.chompIf (\c -> c == ' ')
-            ]
+        |. oneOrMoreSpace
         |= Parser.variable
-            { start = \c -> c /= '\n'
-            , inner = \c -> c /= '\n'
+            { start = \c -> c /= ' '
+            , inner = \c -> Char.isAlphaNum c || c == ' '
             , reserved = Set.empty
             }
-        |. newline
 
 
 
 -- Helpers, many thanks to https://github.com/jxxcarlson/meenylatex
+
+
+oneOrMoreSpace : Parser ()
+oneOrMoreSpace =
+    Parser.succeed (\col1 col2 -> col2 - col1)
+        |= Parser.getOffset
+        |. Parser.chompIf (\c -> c == ' ')
+        |= Parser.getOffset
+        |> Parser.andThen
+            (\delta ->
+                 if delta > 0 then
+                     Parser.succeed ()
+                 else
+                     Parser.problem "No whitespace consumed!"
+            )
 
 
 spaces : Parser ()
@@ -160,6 +149,7 @@ itemListHelper itemParser revItems =
     Parser.oneOf
         [ Parser.succeed (\item -> Loop (item :: revItems))
             |= itemParser
+            |. Parser.symbol "\n"
         , Parser.succeed ()
             |> Parser.map (\_ -> Done (List.reverse revItems))
         ]
