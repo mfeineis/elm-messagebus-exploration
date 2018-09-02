@@ -156,7 +156,12 @@ view { counter } =
 
         , Html.div []
             [ Markdown.toHtml
-                "## Hello World!"
+                """
+
+
+                """
             ]
+
+--## Hello World!
         ]
     }

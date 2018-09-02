@@ -10,8 +10,8 @@ import Url exposing (Url)
 toHtml : String -> Html msg
 toHtml markdown =
     case Parser.run markdownParser markdown of
-        Ok stmt ->
-            render stmt
+        Ok doc ->
+            render doc
 
         Err reason ->
             Debug.log ("Parser error: " ++ Debug.toString reason) <|
@@ -23,14 +23,14 @@ toHtmlString markdown =
     let
         walk block =
             case block of
-                Heading level txt ->
-                    if level > 6 then
-                        "<p>" ++ String.repeat level "#" ++ txt ++ "</p>"
-                    else
-                        "<h" ++ String.fromInt level ++ ">" ++ txt ++ "</h" ++ String.fromInt level ++ ">"
-
                 Document blocks ->
                     List.foldr (++) "\n" (List.map walk blocks)
+
+                EmptyLine ->
+                    "\n"
+
+                Heading level txt ->
+                    "<h" ++ String.fromInt level ++ ">" ++ txt ++ "</h" ++ String.fromInt level ++ ">"
     in
     case Parser.run markdownParser markdown of
         Ok block ->
@@ -52,20 +52,22 @@ render block =
 
 type Block
     = Document (List Block)
+    | EmptyLine
     | Heading Int String
 
 
 markdownParser : Parser Block
 markdownParser =
     Parser.succeed identity
-        |= nonEmptyItemList expression
+        |= oneOrMore expression
         |> Parser.map Document
 
 
 expression : Parser Block
 expression =
     Parser.oneOf
-        [ heading
+        --[ heading
+        [ emptyLine
         ]
 
 
@@ -89,13 +91,42 @@ heading =
         |. oneOrMoreSpace
         |= Parser.variable
             { start = \c -> c /= ' '
-            , inner = \c -> Char.isAlphaNum c || c == ' '
+            , inner = \c -> c /= '\n'
             , reserved = Set.empty
             }
 
 
+emptyLine : Parser Block
+emptyLine =
+    Parser.succeed (\col1 col2 -> col2 - col1)
+        |= Parser.getOffset
+        |. Parser.chompWhile (\c -> c == ' ' || c == '\r' || c == '\t')
+        |= Parser.getOffset
+        |> Parser.andThen
+           (\delta ->
+                if delta > 0 then
+                    Parser.succeed EmptyLine
+                else
+                    Parser.problem "No whitespace consumed!"
+           )
+
 
 -- Helpers, many thanks to https://github.com/jxxcarlson/meenylatex
+
+
+--spaces : Parser ()
+--spaces =
+--    Parser.chompWhile (\c -> c == ' ')
+
+
+--newline : Parser ()
+--newline =
+--    Parser.symbol "\n"
+
+
+--newlines : Parser ()
+--newlines =
+--    Parser.chompWhile (\c -> c == '\n')
 
 
 oneOrMoreSpace : Parser ()
@@ -106,50 +137,31 @@ oneOrMoreSpace =
         |= Parser.getOffset
         |> Parser.andThen
             (\delta ->
-                 if delta > 0 then
-                     Parser.succeed ()
-                 else
-                     Parser.problem "No whitespace consumed!"
+                if delta > 0 then
+                    Parser.succeed ()
+                else
+                    Parser.problem "No whitespace consumed!"
             )
 
 
-spaces : Parser ()
-spaces =
-    Parser.chompWhile (\c -> c == ' ')
-
-
-newline : Parser ()
-newline =
-    Parser.symbol "\n"
-
-
-newlines : Parser ()
-newlines =
-    Parser.chompWhile (\c -> c == '\n')
-
-
-nonEmptyItemList : Parser a -> Parser (List a)
-nonEmptyItemList itemParser =
+oneOrMore : Parser a -> Parser (List a)
+oneOrMore itemParser =
+    let
+        loop initialList =
+            Parser.loop initialList
+                (\revItems ->
+                    Parser.oneOf
+                        [ Parser.succeed (\item -> Loop (item :: revItems))
+                            |= itemParser
+                            |. Parser.oneOf
+                                [ Parser.chompIf (\c -> c == '\n')
+                                , Parser.end
+                                ]
+                        , Parser.succeed ()
+                            |> Parser.map (\_ -> Done (List.reverse revItems))
+                        ]
+                )
+    in
     itemParser
-        |> Parser.andThen (\x -> itemList_ [ x ] itemParser)
+        |> Parser.andThen (\x -> loop [ x ])
 
-
-itemList : Parser a -> Parser (List a)
-itemList itemParser =
-    itemList_ [] itemParser
-
-
-itemList_ : List a -> Parser a -> Parser (List a)
-itemList_ initialList itemParser =
-    Parser.loop initialList (itemListHelper itemParser)
-
-
-itemListHelper : Parser a -> List a -> Parser (Step (List a) (List a))
-itemListHelper itemParser revItems =
-    Parser.oneOf
-        [ Parser.succeed (\item -> Loop (item :: revItems))
-            |= itemParser
-            |. Parser.symbol "\n"
-        , Parser.succeed ()
-            |> Parser.map (\_ -> Done (List.reverse revItems))
-        ]

@@ -10,12 +10,12 @@ suite =
     describe "A valid Markdown document"
         [ test "A pretty normal heading" <|
             \_ ->
-                """# A Simple Markdown document"""
+                "# A Simple Markdown document"
                     |> Markdown.toHtmlString
                     |> Expect.equal "<h1>A Simple Markdown document</h1>\n"
         , test "A pretty normal subheading" <|
             \_ ->
-                """## Subheading\n### Subsubheading"""
+                "## Subheading\n### Subsubheading"
                     |> Markdown.toHtmlString
                     |> Expect.equal
                         (String.join ""
