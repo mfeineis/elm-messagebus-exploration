@@ -17,7 +17,7 @@
   },
   "homepage": "https://github.com/mfeineis/elm-messagebus-exploration#readme",
   "devDependencies": {
-    "elm-test": "^0.19.0-beta4",
-    "ramda": "^0.25.0"
+    "elm-test": ">=0.19.0-beta4",
+    "ramda": ">=0.25.0"
   }
 }
